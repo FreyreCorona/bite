@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 )
 
@@ -24,6 +25,17 @@ func NewCPU(d *Screen, k *Keyboard) *CPU {
 		Display:  d,
 		Keyboard: k,
 	}
+}
+
+func (c *CPU) LoadROM(data []byte) error {
+	if len(data)+0x200 > len(c.Memory) {
+		return fmt.Errorf("ROM too large: %d bytes", len(data))
+	}
+
+	copy(c.Memory[0x200:], data)
+	c.PC = 0x200
+
+	return nil
 }
 
 func (c *CPU) Step() error {
