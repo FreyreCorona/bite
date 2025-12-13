@@ -8,14 +8,25 @@ type Screen struct {
 	Width    int
 	Height   int
 	rowBytes int
+	scale    int
 	buffer   []byte
 }
 
-func NewScreen(w, h int) Screen {
+func NewScreen(w, h, scale int) Screen {
 	rowBytes := (w + 7) / 8
 	buf := make([]byte, rowBytes*h)
 
-	return Screen{Width: w, Height: h, rowBytes: rowBytes, buffer: buf}
+	if scale < 1 {
+		scale = 1
+	}
+
+	return Screen{
+		Width:    w,
+		Height:   h,
+		rowBytes: rowBytes,
+		scale:    scale,
+		buffer:   buf,
+	}
 }
 
 func (s *Screen) Set(x, y int, on bool) {
@@ -83,7 +94,10 @@ func (s *Screen) Draw(x, y int, data []byte) {
 }
 
 func (s *Screen) Render(w io.Writer) error {
-	line := make([]byte, s.Width)
+	on := '█'
+	off := ' '
+
+	line := make([]rune, s.Width*s.scale)
 
 	for y := range s.Height {
 		for x := range s.Width {
@@ -91,14 +105,21 @@ func (s *Screen) Render(w io.Writer) error {
 			pos := 7 - (x % 8)
 			bit := (s.buffer[i] >> pos) & 1
 
+			ch := off
 			if bit == 1 {
-				line[x] = '#'
-			} else {
-				line[x] = ' '
+				ch = on
+			}
+
+			start := x * s.scale
+			for i := range s.scale {
+				line[start+i] = ch
 			}
 		}
-		if _, err := w.Write(line); err != nil {
-			return err
+
+		for range s.scale {
+			if _, err := w.Write([]byte(string(line))); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
