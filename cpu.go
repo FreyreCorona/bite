@@ -14,11 +14,11 @@ type CPU struct {
 	DT     uint8
 	ST     uint8
 
-	Display  Screen
-	Keyboard Keyboard
+	Display  *Screen
+	Keyboard *Keyboard
 }
 
-func NewCPU(d Screen, k Keyboard) *CPU {
+func NewCPU(d *Screen, k *Keyboard) *CPU {
 	return &CPU{
 		PC:       0x200,
 		Display:  d,
