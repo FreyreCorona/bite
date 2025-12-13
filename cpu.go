@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 )
 
@@ -15,18 +14,20 @@ type CPU struct {
 	DT     uint8
 	ST     uint8
 
-	Display Screen
+	Display  Screen
+	Keyboard Keyboard
 }
 
-func NewCPU(d Screen) *CPU {
+func NewCPU(d Screen, k Keyboard) *CPU {
 	return &CPU{
-		PC:      0x200,
-		Display: d,
+		PC:       0x200,
+		Display:  d,
+		Keyboard: k,
 	}
 }
 
 func (c *CPU) Step() error {
-	opcode := c.Memory[c.PC]<<8 | c.Memory[c.PC+1]
+	opcode := uint16(c.Memory[c.PC])<<8 | uint16(c.Memory[c.PC+1])
 
 	c.PC += 2
 
@@ -138,7 +139,7 @@ func (c *CPU) ret() error {
 }
 
 // 0nnn: SYS addr (ignorado por la mayoría de intérpretes)
-func (c *CPU) sys(op uint16) error {
+func (c *CPU) sys(_ uint16) error {
 	return nil
 }
 
@@ -355,9 +356,9 @@ func (c *CPU) drw(op uint16) error {
 // Ex9E: SKP Vx
 func (c *CPU) skp(op uint16) error {
 	x := (op >> 8) & 0xF
-	key := c.V[x]
+	key := int(c.V[x])
 
-	if c.IsKeyPressed(key) { // Función externa que debe existir
+	if c.Keyboard.IsPressed(key) {
 		c.PC += 2
 	}
 	return nil
@@ -366,9 +367,9 @@ func (c *CPU) skp(op uint16) error {
 // ExA1: SKNP Vx
 func (c *CPU) sknp(op uint16) error {
 	x := (op >> 8) & 0xF
-	key := c.V[x]
+	key := int(c.V[x])
 
-	if !c.IsKeyPressed(key) {
+	if !c.Keyboard.IsPressed(key) {
 		c.PC += 2
 	}
 	return nil
@@ -384,11 +385,12 @@ func (c *CPU) ldVxDT(op uint16) error {
 // Fx0A: LD Vx, K (espera tecla)
 func (c *CPU) ldVxKey(op uint16) error {
 	x := (op >> 8) & 0xF
-	key, pressed := c.GetKeyBlocking() // función externa
-	if !pressed {
-		return fmt.Errorf("tecla no recibida")
+	if key, pressed := c.Keyboard.AnyPressed(); pressed {
+		c.V[x] = uint8(key)
+		return nil
 	}
-	c.V[x] = key
+
+	c.PC -= 2
 	return nil
 }
 
