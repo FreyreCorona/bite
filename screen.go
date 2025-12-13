@@ -117,10 +117,7 @@ func (s *Screen) Render(w io.Writer) error {
 		}
 
 		for range s.scale {
-			if _, err := w.Write([]byte(string(line))); err != nil {
-				return err
-			}
-			if _, err := w.Write([]byte("\n")); err != nil {
+			if _, err := w.Write([]byte(string(line) + "\n")); err != nil {
 				return err
 			}
 		}
