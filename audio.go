@@ -11,13 +11,52 @@ type Audio struct {
 	SampleRate int
 	Channels   int
 	BitDepth   int
+	writer     io.Writer
+	playing    bool
+	stpCh      chan struct{}
 }
 
-func NewAudio(sr, ch, bit int) *Audio {
-	return &Audio{sr, ch, bit}
+func NewAudio(sr, ch, bit int, w io.Writer) *Audio {
+	return &Audio{
+		SampleRate: sr,
+		Channels:   ch,
+		BitDepth:   bit,
+		writer:     w,
+		stpCh:      make(chan struct{}),
+	}
 }
 
-func (a *Audio) WriteSamples(w io.Writer, samples []int16) error {
+func (a *Audio) On() {
+	if a.playing {
+		return
+	}
+
+	a.playing = true
+	a.stpCh = make(chan struct{})
+
+	go func() {
+		for {
+			select {
+			case <-a.stpCh:
+				return
+			default:
+				samples := a.GenerateSquareWave(440, 0.05, 3000)
+				_ = a.WriteSamples(samples)
+			}
+		}
+	}()
+}
+
+func (a *Audio) Off() {
+	if !a.playing {
+		return
+	}
+
+	close(a.stpCh)
+	a.playing = false
+}
+
+func (a *Audio) WriteSamples(samples []int16) error {
 	if a.BitDepth != 16 {
 		return errors.New("only 16bits sample audio")
 	}
@@ -27,7 +66,7 @@ func (a *Audio) WriteSamples(w io.Writer, samples []int16) error {
 		binary.LittleEndian.PutUint16(buf[i*2:], uint16(s))
 	}
 
-	_, err := w.Write(buf)
+	_, err := a.writer.Write(buf)
 	return err
 }
 
