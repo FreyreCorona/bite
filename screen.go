@@ -12,7 +12,7 @@ type Screen struct {
 	buffer   []byte
 }
 
-func NewScreen(w, h, scale int) Screen {
+func NewScreen(w, h, scale int) *Screen {
 	rowBytes := (w + 7) / 8
 	buf := make([]byte, rowBytes*h)
 
@@ -20,7 +20,7 @@ func NewScreen(w, h, scale int) Screen {
 		scale = 1
 	}
 
-	return Screen{
+	return &Screen{
 		Width:    w,
 		Height:   h,
 		rowBytes: rowBytes,
