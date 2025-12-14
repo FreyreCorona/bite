@@ -395,14 +395,12 @@ func (c *CPU) drw(op uint16) error {
 
 			x := (vx + col) % c.Display.Width
 
-			byteVal := c.Display.Get(x, y)
-			pixel := (byteVal >> (7 - (x % 8))) & 1
-
-			if pixel == 1 {
+			on := c.Display.Get(x, y)
+			if on {
 				c.V[0xF] = 1
 			}
 
-			c.Display.Set(x, y, pixel == 0)
+			c.Display.Set(x, y, !on)
 		}
 	}
 
