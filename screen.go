@@ -47,17 +47,15 @@ func (s *Screen) Set(x, y int, on bool) {
 	s.buffer[i] &^= 1 << pos
 }
 
-func (s *Screen) Get(x, y int) byte {
+func (s *Screen) Get(x, y int) bool {
 	if x < 0 || y < 0 || x >= s.Width || y >= s.Height {
-		return 0
+		return false
 	}
 
 	i := y*s.rowBytes + (x / 8)
-	if i < 0 || i >= len(s.buffer) {
-		return 0
-	}
+	pos := 7 - (x % 8)
 
-	return s.buffer[i]
+	return (s.buffer[i] & (1 << pos)) != 0
 }
 
 func (s *Screen) Draw(x, y int, data []byte) {
