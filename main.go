@@ -114,7 +114,11 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 		defer term.Restore(int(os.Stdin.Fd()), old)
 	}
 
-	go keyboard.Run()
+	go func() {
+		if err := keyboard.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	ticker := time.NewTicker(time.Second / 60)
 	defer ticker.Stop()
