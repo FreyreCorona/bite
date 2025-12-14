@@ -9,19 +9,20 @@ import (
 )
 
 var (
-	ROM       string
-	Out       string
-	ScreenOut io.Writer = os.Stdout
-	In        string
-	InputIn   io.Reader = os.Stdin
-	Oa        string
-	AudioOut  io.Writer
+	ROM string
 
-	ScrW  int
-	ScrH  int
-	Scale int
-	Keys  int
+	Out    string
+	ScrOut io.Writer = os.Stdout
+	ScrW   int
+	ScrH   int
+	Scale  int
 
+	In      string
+	InputIn io.Reader = os.Stdin
+	Keys    int
+
+	Oa         string
+	AudioOut   io.Writer
 	SampleRate int
 )
 
@@ -29,21 +30,25 @@ func parseFlags() {
 	flag.StringVar(&ROM, "rom", "", "path to ROM file")
 
 	flag.StringVar(&Out, "o", "", "screen output")
-	flag.IntVar(&ScrW, "w", 64, "screen width")
-	flag.IntVar(&ScrH, "h", 32, "screen height")
+	flag.IntVar(&ScrW, "width", 64, "screen width")
+	flag.IntVar(&ScrH, "height", 32, "screen height")
 	flag.IntVar(&Scale, "scale", 1, "screen scale factor")
 
 	flag.StringVar(&In, "i", "", "input device")
 	flag.IntVar(&Keys, "keys", 16, "keyboard size")
 
-	flag.StringVar(&Oa, "oa", "", "audio output")
-	flag.IntVar(&SampleRate, "sr", 44100, "audio sample rate")
+	flag.StringVar(&Oa, "a", "", "audio output")
+	flag.IntVar(&SampleRate, "samplerate", 44100, "audio sample rate")
 
 	flag.Parse()
 
 	if ROM == "" {
 		log.Fatal("no ROM specified")
 	}
+}
+
+func main() {
+	parseFlags()
 
 	if Out != "" {
 		f, err := os.Create(Out)
@@ -51,7 +56,7 @@ func parseFlags() {
 			log.Fatal(err)
 		}
 		defer f.Close()
-		ScreenOut = f
+		ScrOut = f
 	}
 
 	if Oa != "" {
@@ -64,19 +69,15 @@ func parseFlags() {
 	}
 
 	if In != "" {
-		f, err := os.Create(In)
+		f, err := os.Open(In)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer f.Close()
 		InputIn = f
 	}
-}
 
-func main() {
-	parseFlags()
-
-	screen := NewScreen(ScrW, ScrH, Scale, ScreenOut)
+	screen := NewScreen(ScrW, ScrH, Scale, ScrOut)
 	keyboard := NewKeyboard(Keys, InputIn)
 
 	var audio *Audio
@@ -96,7 +97,7 @@ func main() {
 }
 
 func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
-	ScreenOut.Write([]byte("\x1b[?25l"))
+	ScrOut.Write([]byte("\x1b[?25l"))
 
 	go func() {
 		if err := keyboard.Run(); err != nil {
@@ -107,8 +108,8 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 	for {
 		cpu.Step()
 
-		if ScreenOut == os.Stdout {
-			ScreenOut.Write([]byte("\033[H"))
+		if ScrOut == os.Stdout {
+			ScrOut.Write([]byte("\033[H"))
 		}
 		if err := screen.Render(); err != nil {
 			log.Fatal(err)
@@ -117,6 +118,6 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 		time.Sleep(time.Millisecond * 16)
 	}
 
-	ScreenOut.Write([]byte("\x1b[?25h"))
+	ScrOut.Write([]byte("\x1b[?25h"))
 	return 0
 }
