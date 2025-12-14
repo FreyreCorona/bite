@@ -412,7 +412,7 @@ func (c *CPU) drw(op uint16) error {
 // Ex9E: SKP Vx
 func (c *CPU) skp(op uint16) error {
 	x := (op >> 8) & 0xF
-	key := int(c.V[x])
+	key := int(c.V[x] & 0xF)
 
 	if c.Keyboard.IsPressed(key) {
 		c.PC += 2
@@ -423,7 +423,7 @@ func (c *CPU) skp(op uint16) error {
 // ExA1: SKNP Vx
 func (c *CPU) sknp(op uint16) error {
 	x := (op >> 8) & 0xF
-	key := int(c.V[x])
+	key := int(c.V[x] & 0xF)
 
 	if !c.Keyboard.IsPressed(key) {
 		c.PC += 2
