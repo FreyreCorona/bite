@@ -73,4 +73,21 @@ func parseFlags() {
 }
 
 func main() {
+	parseFlags()
+
+	screen := NewScreen(ScrW, ScrH, Scale, ScreenOut)
+	keyboard := NewKeyboard(Keys, InputIn)
+
+	var audio *Audio
+	if AudioOut != nil {
+		audio = NewAudio(SampleRate, 1, 16, AudioOut)
+	}
+
+	cpu := NewCPU(screen, keyboard, audio)
+
+	data, err := os.ReadFile(ROM)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cpu.LoadROM(data)
 }
