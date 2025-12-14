@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 var (
@@ -90,4 +91,32 @@ func main() {
 		log.Fatal(err)
 	}
 	cpu.LoadROM(data)
+
+	os.Exit(RunTTY(cpu, screen, keyboard, audio))
+}
+
+func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
+	ScreenOut.Write([]byte("\x1b[?25l"))
+
+	go func() {
+		if err := keyboard.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	for {
+		cpu.Step()
+
+		if ScreenOut == os.Stdout {
+			ScreenOut.Write([]byte("\033[H"))
+		}
+		if err := screen.Render(); err != nil {
+			log.Fatal(err)
+		}
+
+		time.Sleep(time.Millisecond * 16)
+	}
+
+	ScreenOut.Write([]byte("\x1b[?25h"))
+	return 0
 }
