@@ -119,9 +119,11 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 	ticker := time.NewTicker(time.Second / 60)
 	defer ticker.Stop()
 
+	cicles := 700 / 60
 	for range ticker.C {
-		for range 10 {
+		for range cicles {
 			cpu.Step()
+			cpu.TickTimers()
 		}
 
 		if ScrOut == os.Stdout {
