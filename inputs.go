@@ -1,19 +1,51 @@
 package main
 
-import "math/bits"
+import (
+	"io"
+	"math/bits"
+)
 
 type Keyboard struct {
-	keys []uint16
-	size int
+	reader io.Reader
+	keys   []uint16
+	size   int
 }
 
-func NewKeyboard(size int) *Keyboard {
+func NewKeyboard(size int, r io.Reader) *Keyboard {
 	if size <= 0 {
 		return nil
 	}
 
 	words := (size + 16 - 1) / 16
-	return &Keyboard{keys: make([]uint16, words), size: size}
+	return &Keyboard{
+		keys:   make([]uint16, words),
+		size:   size,
+		reader: r,
+	}
+}
+
+func (k *Keyboard) Run() error {
+	if k.reader == nil {
+		return nil
+	}
+
+	buf := make([]byte, 2) // [key, state]
+
+	for {
+		_, err := io.ReadFull(k.reader, buf)
+		if err != nil {
+			return err
+		}
+
+		key := int(buf[0])
+		down := buf[1] == 1
+
+		if down {
+			k.Press(key)
+		} else {
+			k.Release(key)
+		}
+	}
 }
 
 func (k *Keyboard) Press(key int) {
