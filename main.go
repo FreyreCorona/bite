@@ -119,12 +119,14 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 	ticker := time.NewTicker(time.Second / 60)
 	defer ticker.Stop()
 
-	cicles := 700 / 60
+	cycles := 700 / 60
 	for range ticker.C {
-		for range cicles {
-			cpu.Step()
-			cpu.TickTimers()
+		for range cycles {
+			if err := cpu.Step(); err != nil {
+				log.Fatal(err)
+			}
 		}
+		cpu.TickTimers()
 
 		if ScrOut == os.Stdout {
 			ScrOut.Write([]byte("\x1b[H"))
