@@ -77,13 +77,16 @@ func (c *CPU) TickTimers() {
 
 	if c.ST > 0 {
 		c.ST--
-		if c.Audio != nil {
-			c.Audio.On()
-		}
+	}
+
+	if c.Audio == nil {
+		return
+	}
+
+	if c.ST > 0 {
+		c.Audio.On()
 	} else {
-		if c.Audio != nil {
-			c.Audio.Off()
-		}
+		c.Audio.Off()
 	}
 }
 
