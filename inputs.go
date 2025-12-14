@@ -3,12 +3,14 @@ package main
 import (
 	"io"
 	"math/bits"
+	"sync"
 )
 
 type Keyboard struct {
 	reader io.Reader
 	keys   []uint16
 	size   int
+	mu     sync.RWMutex
 }
 
 func NewKeyboard(size int, r io.Reader) *Keyboard {
@@ -56,7 +58,9 @@ func (k *Keyboard) Press(key int) {
 	word := key / 16
 	bit := uint16(key % 16)
 
+	k.mu.Lock()
 	k.keys[word] |= uint16(1) << bit
+	k.mu.Unlock()
 }
 
 func (k *Keyboard) Release(key int) {
@@ -67,7 +71,9 @@ func (k *Keyboard) Release(key int) {
 	word := key / 16
 	bit := uint16(key % 16)
 
+	k.mu.Lock()
 	k.keys[word] &^= uint16(1) << bit
+	k.mu.Unlock()
 }
 
 func (k *Keyboard) IsPressed(key int) bool {
@@ -78,10 +84,16 @@ func (k *Keyboard) IsPressed(key int) bool {
 	word := key / 16
 	bit := uint16(key % 16)
 
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+
 	return (k.keys[word] & (uint16(1) << bit)) != 0
 }
 
 func (k *Keyboard) AnyPressed() (int, bool) {
+	k.mu.RLock()
+	defer k.mu.RUnlock()
+
 	for i, word := range k.keys {
 		if word == 0 {
 			continue
