@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"time"
+
+	"golang.org/x/term"
 )
 
 var (
@@ -93,31 +95,43 @@ func main() {
 	}
 	cpu.LoadROM(data)
 
-	os.Exit(RunTTY(cpu, screen, keyboard, audio))
+	code := RunTTY(cpu, screen, keyboard, audio)
+
+	os.Exit(code)
 }
 
 func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
-	ScrOut.Write([]byte("\x1b[?25l"))
+	if ScrOut == os.Stdout {
+		ScrOut.Write([]byte("\x1b[?25l"))
+		defer ScrOut.Write([]byte("\x1b[?25h"))
+	}
 
-	go func() {
-		if err := keyboard.Run(); err != nil {
+	if InputIn == os.Stdin {
+		old, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
 			log.Fatal(err)
 		}
-	}()
+		defer term.Restore(int(os.Stdin.Fd()), old)
+	}
 
-	for {
-		cpu.Step()
+	go keyboard.Run()
+
+	ticker := time.NewTicker(time.Second / 60)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		for range 10 {
+			cpu.Step()
+		}
 
 		if ScrOut == os.Stdout {
-			ScrOut.Write([]byte("\033[H"))
+			ScrOut.Write([]byte("\x1b[H"))
 		}
+
 		if err := screen.Render(); err != nil {
 			log.Fatal(err)
 		}
-
-		time.Sleep(time.Millisecond * 16)
 	}
 
-	ScrOut.Write([]byte("\x1b[?25h"))
 	return 0
 }
