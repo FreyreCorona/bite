@@ -12,8 +12,8 @@ type Keyboard struct {
 }
 
 func NewKeyboard(size int, r io.Reader) *Keyboard {
-	if size <= 0 {
-		return nil
+	if size < 1 {
+		size = 1
 	}
 
 	words := (size + 16 - 1) / 16
