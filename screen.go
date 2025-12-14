@@ -10,9 +10,10 @@ type Screen struct {
 	rowBytes int
 	scale    int
 	buffer   []byte
+	writer   io.Writer
 }
 
-func NewScreen(w, h, scale int) *Screen {
+func NewScreen(w, h, scale int, writer io.Writer) *Screen {
 	rowBytes := (w + 7) / 8
 	buf := make([]byte, rowBytes*h)
 
@@ -26,6 +27,7 @@ func NewScreen(w, h, scale int) *Screen {
 		rowBytes: rowBytes,
 		scale:    scale,
 		buffer:   buf,
+		writer:   writer,
 	}
 }
 
@@ -93,7 +95,7 @@ func (s *Screen) Draw(x, y int, data []byte) {
 	}
 }
 
-func (s *Screen) Render(w io.Writer) error {
+func (s *Screen) Render() error {
 	on := '█'
 	off := ' '
 
@@ -117,7 +119,7 @@ func (s *Screen) Render(w io.Writer) error {
 		}
 
 		for range s.scale {
-			if _, err := w.Write([]byte(string(line) + "\n")); err != nil {
+			if _, err := s.writer.Write([]byte(string(line) + "\n")); err != nil {
 				return err
 			}
 		}
