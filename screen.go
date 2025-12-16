@@ -94,34 +94,36 @@ func (s *Screen) Draw(x, y int, data []byte) {
 }
 
 func (s *Screen) Render() error {
-	on := '█'
-	off := ' '
-
-	line := make([]rune, s.Width*s.scale)
-
-	for y := range s.Height {
-		for x := range s.Width {
-			i := y*s.rowBytes + (x / 8)
-			pos := 7 - (x % 8)
-			bit := (s.buffer[i] >> pos) & 1
-
-			ch := off
-			if bit == 1 {
-				ch = on
+	for y := 0; y < s.Height; y += 2 {
+		for x := 0; x < s.Width; x++ {
+			top := s.Get(x, y)
+			bottom := false
+			if y+1 < s.Height {
+				bottom = s.Get(x, y+1)
 			}
 
-			start := x * s.scale
-			for i := range s.scale {
-				line[start+i] = ch
+			var ch rune
+			switch {
+			case top && bottom:
+				ch = '█'
+			case top && !bottom:
+				ch = '▀'
+			case !top && bottom:
+				ch = '▄'
+			default:
+				ch = ' '
 			}
-		}
 
-		for range s.scale {
-			if _, err := s.writer.Write([]byte(string(line) + "\n")); err != nil {
+			if _, err := s.writer.Write([]byte(string(ch))); err != nil {
 				return err
 			}
 		}
+
+		if _, err := s.writer.Write([]byte("\n")); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
