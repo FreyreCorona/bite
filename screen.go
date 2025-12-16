@@ -93,22 +93,41 @@ func (s *Screen) Draw(x, y int, data []byte) {
 	}
 }
 
-func (s *Screen) Render() error {
+func (s *Screen) Render(cols, rows int) error {
+	w := s.Width
+	h := s.Height / 2
+
+	offX := (cols - w) / 2
+	offY := (rows - h) / 2
+
+	if offX < 0 {
+		offX = 0
+	}
+
+	if offY < 0 {
+		offY = 0
+	}
+
+	for range offY {
+		s.writer.Write([]byte("\n"))
+	}
+
 	for y := 0; y < s.Height; y += 2 {
-		for x := 0; x < s.Width; x++ {
+		for x := 0; x < offX; x++ {
+			s.writer.Write([]byte(" "))
+		}
+
+		for x := range s.Width {
 			top := s.Get(x, y)
-			bottom := false
-			if y+1 < s.Height {
-				bottom = s.Get(x, y+1)
-			}
+			bottom := y+1 < s.Height && s.Get(x, y+1)
 
 			var ch rune
 			switch {
 			case top && bottom:
 				ch = '█'
-			case top && !bottom:
+			case top:
 				ch = '▀'
-			case !top && bottom:
+			case bottom:
 				ch = '▄'
 			default:
 				ch = ' '
@@ -118,12 +137,10 @@ func (s *Screen) Render() error {
 				return err
 			}
 		}
-
 		if _, err := s.writer.Write([]byte("\n")); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
