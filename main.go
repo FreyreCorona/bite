@@ -124,6 +124,12 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 	defer ticker.Stop()
 
 	cycles := 700 / 60
+
+	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		cols, rows = 80, 24
+	}
+
 	for range ticker.C {
 		for range cycles {
 			if err := cpu.Step(); err != nil {
@@ -136,7 +142,7 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 			ScrOut.Write([]byte("\x1b[H"))
 		}
 
-		if err := screen.Render(); err != nil {
+		if err := screen.Render(cols, rows); err != nil {
 			log.Fatal(err)
 		}
 	}
