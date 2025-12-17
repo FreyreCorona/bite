@@ -8,24 +8,18 @@ type Screen struct {
 	Width    int
 	Height   int
 	rowBytes int
-	scale    int
 	buffer   []byte
 	writer   io.Writer
 }
 
-func NewScreen(w, h, scale int, writer io.Writer) *Screen {
+func NewScreen(w, h int, writer io.Writer) *Screen {
 	rowBytes := (w + 7) / 8
 	buf := make([]byte, rowBytes*h)
-
-	if scale < 1 {
-		scale = 1
-	}
 
 	return &Screen{
 		Width:    w,
 		Height:   h,
 		rowBytes: rowBytes,
-		scale:    scale,
 		buffer:   buf,
 		writer:   writer,
 	}
@@ -93,31 +87,12 @@ func (s *Screen) Draw(x, y int, data []byte) {
 	}
 }
 
-func (s *Screen) Render(cols, rows int) error {
-	w := s.Width
-	h := s.Height / 2
+func (s *Screen) Render(w, h int) error {
+	maxW := min(s.Width, w)
+	maxH := min(min(s.Height, h*2), s.Height)
 
-	offX := (cols - w) / 2
-	offY := (rows - h) / 2
-
-	if offX < 0 {
-		offX = 0
-	}
-
-	if offY < 0 {
-		offY = 0
-	}
-
-	for range offY {
-		s.writer.Write([]byte("\n"))
-	}
-
-	for y := 0; y < s.Height; y += 2 {
-		for x := 0; x < offX; x++ {
-			s.writer.Write([]byte(" "))
-		}
-
-		for x := range s.Width {
+	for y := 0; y < maxH; y += 2 {
+		for x := range maxW {
 			top := s.Get(x, y)
 			bottom := y+1 < s.Height && s.Get(x, y+1)
 
@@ -136,8 +111,9 @@ func (s *Screen) Render(cols, rows int) error {
 			if _, err := s.writer.Write([]byte(string(ch))); err != nil {
 				return err
 			}
+
 		}
-		if _, err := s.writer.Write([]byte("\n")); err != nil {
+		if _, err := s.writer.Write([]byte("\r\n")); err != nil {
 			return err
 		}
 	}

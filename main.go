@@ -17,7 +17,6 @@ var (
 	ScrOut io.Writer = os.Stdout
 	ScrW   int
 	ScrH   int
-	Scale  int
 
 	In      string
 	InputIn io.Reader = os.Stdin
@@ -34,7 +33,6 @@ func parseFlags() {
 	flag.StringVar(&Out, "o", "", "screen output")
 	flag.IntVar(&ScrW, "width", 64, "screen width")
 	flag.IntVar(&ScrH, "height", 32, "screen height")
-	flag.IntVar(&Scale, "scale", 1, "screen scale factor")
 
 	flag.StringVar(&In, "i", "", "input device")
 	flag.IntVar(&Keys, "keys", 16, "keyboard size")
@@ -79,7 +77,8 @@ func main() {
 		InputIn = f
 	}
 
-	screen := NewScreen(ScrW, ScrH, Scale, ScrOut)
+	screen := NewScreen(ScrW, ScrH, ScrOut)
+
 	keyboard := NewKeyboard(Keys, InputIn)
 
 	var audio *Audio
@@ -96,7 +95,6 @@ func main() {
 	cpu.LoadROM(data)
 
 	code := RunTTY(cpu, screen, keyboard, audio)
-
 	os.Exit(code)
 }
 
@@ -125,10 +123,7 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 
 	cycles := 700 / 60
 
-	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		cols, rows = 80, 24
-	}
+	ScrOut.Write([]byte("\x1b[2J"))
 
 	for range ticker.C {
 		for range cycles {
@@ -138,11 +133,16 @@ func RunTTY(cpu *CPU, screen *Screen, keyboard *Keyboard, audio *Audio) int {
 		}
 		cpu.TickTimers()
 
+		w, h, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil {
+			continue
+		}
+
 		if ScrOut == os.Stdout {
 			ScrOut.Write([]byte("\x1b[H"))
 		}
 
-		if err := screen.Render(cols, rows); err != nil {
+		if err := screen.Render(w, h); err != nil {
 			log.Fatal(err)
 		}
 	}
