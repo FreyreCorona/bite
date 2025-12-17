@@ -4,6 +4,7 @@ import (
 	"io"
 	"math/bits"
 	"sync"
+	"time"
 )
 
 type Keyboard struct {
@@ -31,22 +32,35 @@ func (k *Keyboard) Run() error {
 		return nil
 	}
 
-	buf := make([]byte, 2) // [key, state]
+	keyMap := map[byte]int{
+		'1': 0x1, '2': 0x2, '3': 0x3, '4': 0xC,
+		'q': 0x4, 'w': 0x5, 'e': 0x6, 'r': 0xD,
+		'a': 0x7, 's': 0x8, 'd': 0x9, 'f': 0xE,
+		'z': 0xA, 'x': 0x0, 'c': 0xB, 'v': 0xF,
+	}
+
+	buf := make([]byte, 1)
 
 	for {
-		_, err := io.ReadFull(k.reader, buf)
+		n, err := k.reader.Read(buf)
 		if err != nil {
 			return err
 		}
 
-		key := int(buf[0])
-		down := buf[1] == 1
-
-		if down {
-			k.Press(key)
-		} else {
-			k.Release(key)
+		if n != 1 {
+			continue
 		}
+
+		key, ok := keyMap[buf[0]]
+		if !ok {
+			continue
+		}
+
+		k.Press(int(key))
+		go func(ke int) {
+			time.Sleep(30 * time.Millisecond)
+			k.Release(ke)
+		}(key)
 	}
 }
 
